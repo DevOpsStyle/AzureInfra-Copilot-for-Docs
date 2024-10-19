@@ -58,10 +58,15 @@ To set up and run the project, follow these steps:
 3. **Configure Your Azure and OpenAI Credentials**:
     Update the script with your Azure Service Principal credentials and OpenAI API key:
     ```python
-    tenant_id = 'your-tenant-id'
-    client_id = 'your-client-id'
-    client_secret = 'your-client-secret'
-    API_KEY = 'your-openai-api-key'
+    tenant_id = '<replace with tenant id'
+    client_id = '<replace with app client id>'
+    client_secret = '<replace with secret>'
+
+    API_KEY = "<replace with api key for OpenAI>"
+    QUESTION_ENDPOINT = "<replace with OpenAI endpoint"
+
+    subscription_id = '<replace with the landing zone subid where the workload is placed>'
+
     ```
 
 ### Running the Script
@@ -69,17 +74,20 @@ To set up and run the project, follow these steps:
 1. **Run the Script**:
     You can run the script with the following command:
     ```bash
-    python create_doc_from_tags2.py
+    python Azure Resource Metadata Analyzer.py
     ```
 
 2. The script will generate:
    - A CSV file (`resources_with_expanded_metadata.csv`) containing detailed metadata for each discovered resource.
    - A DOCX file (`Output.docx`) with an overview and detailed report of the resources and their architecture.
 
+
 ### Output Example
 
 - **CSV File**: The CSV file contains detailed information about each Azure resource, including expanded nested properties.
+  ![CSV](./images/csv_example.jpeg)
 - **DOCX File**: The DOCX file provides an overview of the workload and detailed architecture descriptions for each resource, powered by OpenAI.
+  ![DOCX](./images/doc_example.jpeg)
 
 ## Contributing
 
