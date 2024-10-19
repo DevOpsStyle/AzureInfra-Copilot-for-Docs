@@ -91,6 +91,7 @@ To set up and run the project, follow these steps:
   ![CSV](./images/csv_example.jpeg)
 - **DOCX File**: The DOCX file provides an overview of the workload and detailed architecture descriptions for each resource, powered by OpenAI.
   ![DOCX](./images/doc_example.jpeg)
+  ![DOCX](./images/doc_example2.jpeg)
 
 ## Contributing
 
