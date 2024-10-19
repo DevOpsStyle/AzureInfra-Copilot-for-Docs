@@ -84,7 +84,7 @@ To set up and run the project, follow these steps:
 
 ### Output Example
 
-- **CSV File**: The CSV file contains detailed information about each Azure resource, including expanded nested properties.
+- **CSV File**: The CSV file contains detailed information about each Azure resource, including expanded nested properties. The CSV will add dinamically column based on resource properties. Huge column with a lot of properties are expected. Use this file for local query and filtering.
   ![CSV](./images/csv_example.jpeg)
 - **DOCX File**: The DOCX file provides an overview of the workload and detailed architecture descriptions for each resource, powered by OpenAI.
   ![DOCX](./images/doc_example.jpeg)
