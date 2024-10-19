@@ -6,7 +6,10 @@
 
 The goal of this project is to provide an automated way to gather and document Azure resources for better analysis, reporting, and optimization. We also invite contributions from the community to extend the tool with new features and improvements, in line with the continuous development model (Artifact).
 
-## Objectives
+## Project Objective
+The goal of the project is to give a basis on which you can then develop and obtain information as needed. The project is granted “as is” and there is no guarantee of support. Contributors are invited to participate in the project to add new features and possibly make up for features not currently present.
+
+## Script Objectives
 
 The key objectives of the Azure Resource Metadata Analyzer are:
 - Automatically discover Azure resources tagged with specific metadata.
@@ -122,6 +125,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-*Azure Resource Metadata Analyzer is a continuous improvement project (Artifact) built to automate Azure resource documentation and reporting. We invite contributions and encourage innovation through new feature suggestions and performance optimizations.*
+*Azure Resource Metadata Analyzer is a continuous improvement project (Artifact) built to automate Azure resource documentation and reporting. The heart of the project are the community. We invite contributions and encourage innovation through new feature suggestions and performance optimizations.*
 
 
