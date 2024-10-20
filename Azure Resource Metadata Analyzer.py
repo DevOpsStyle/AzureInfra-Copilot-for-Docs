@@ -5,18 +5,16 @@ import requests
 import collections.abc
 from azure.identity import ClientSecretCredential
 from azure.mgmt.resource import ResourceManagementClient
+from azure.mgmt.subscription import SubscriptionClient
 
-# Informazioni del Service Principal (che hai ottenuto dal comando az ad sp create-for-rbac)
-tenant_id = '<replace with tenant id'
+# Informazioni del Service Principal
+tenant_id = '<replace with tenant id>'
 client_id = '<replace with app client id>'
 client_secret = '<replace with secret>'
 
 # Configurazione degli endpoint e delle chiavi API di OpenAI
 API_KEY = "<replace with api key for OpenAI>"
-QUESTION_ENDPOINT = "<replace with OpenAI endpoint"
-
-# ID della sottoscrizione Azure
-subscription_id = '<replace with the landing zone subid where the workload is placed>'
+QUESTION_ENDPOINT = "<replace with OpenAI endpoint>"
 
 # Autenticazione tramite il Service Principal
 credential = ClientSecretCredential(
@@ -25,8 +23,8 @@ credential = ClientSecretCredential(
     client_secret=client_secret
 )
 
-# Crea il client per la gestione delle risorse di Azure
-resource_client = ResourceManagementClient(credential, subscription_id)
+# Crea il client per ottenere le sottoscrizioni
+subscription_client = SubscriptionClient(credential)
 
 # Funzione per appiattire un dizionario annidato in una struttura piana
 def flatten_dict(d, parent_key='', sep='_'):
@@ -34,27 +32,23 @@ def flatten_dict(d, parent_key='', sep='_'):
     for k, v in d.items():
         new_key = f"{parent_key}{sep}{k}" if parent_key else k
 
-        # Se il valore è un dizionario, lo appiattiamo ricorsivamente
         if isinstance(v, collections.abc.MutableMapping):
             items.extend(flatten_dict(v, new_key, sep=sep).items())
-        # Se il valore è una lista, appiattiamo ogni elemento della lista con un suffisso numerico
         elif isinstance(v, list):
             for i, item in enumerate(v):
-                # Controlliamo se l'elemento nella lista è a sua volta un dizionario
                 if isinstance(item, collections.abc.MutableMapping):
                     items.extend(flatten_dict(item, f"{new_key}{sep}{i}", sep=sep).items())
                 else:
                     items.append((f"{new_key}{sep}{i}", item))
-        # Se il valore non è un dizionario né una lista, lo aggiungiamo direttamente
         else:
             items.append((new_key, v))
     return dict(items)
 
-
-# Funzione per ottenere tutte le risorse con un determinato tag
-def get_resources_by_tag(tag_key, tag_value):
+# Funzione per ottenere tutte le risorse con un determinato tag in una sottoscrizione
+def get_resources_by_tag_in_subscription(subscription_id, tag_key, tag_value):
+    resource_client = ResourceManagementClient(credential, subscription_id)
     tag_filter = f"tagName eq '{tag_key}' and tagValue eq '{tag_value}'"
-    print(f"Cercando risorse con il tag: {tag_key}={tag_value}")
+    print(f"Cercando risorse con il tag: {tag_key}={tag_value} nella sottoscrizione {subscription_id}")
 
     resources = resource_client.resources.list(filter=tag_filter)
     resources_list = []
@@ -72,10 +66,10 @@ def get_resources_by_tag(tag_key, tag_value):
 
     return resources_list
 
-
-# Funzione per ottenere i Resource Groups con un determinato tag
-def get_resource_groups_by_tag(tag_key, tag_value):
-    print(f"Cercando resource groups con il tag: {tag_key}={tag_value}")
+# Funzione per ottenere i Resource Groups con un determinato tag in una sottoscrizione
+def get_resource_groups_by_tag_in_subscription(subscription_id, tag_key, tag_value):
+    resource_client = ResourceManagementClient(credential, subscription_id)
+    print(f"Cercando resource groups con il tag: {tag_key}={tag_value} nella sottoscrizione {subscription_id}")
     resource_groups = resource_client.resource_groups.list()
     matching_resource_groups = []
 
@@ -86,10 +80,39 @@ def get_resource_groups_by_tag(tag_key, tag_value):
 
     return matching_resource_groups
 
+# Funzione per ottenere tutte le risorse con un determinato tag da tutte le sottoscrizioni
+def get_all_resources(tag_key, tag_value):
+    all_resources = []
+    added_resource_ids = set()
 
-# Funzione per ottenere le risorse all'interno di un Resource Group
-def get_resources_in_resource_group(resource_group_name):
-    print(f"Recuperando risorse dal resource group: {resource_group_name}")
+    # Elenca tutte le sottoscrizioni a cui hai accesso
+    for subscription in subscription_client.subscriptions.list():
+        subscription_id = subscription.subscription_id
+        print(f"Processando la sottoscrizione: {subscription_id}")
+
+        # Cerca le risorse con il tag specificato in questa sottoscrizione
+        resources = get_resources_by_tag_in_subscription(subscription_id, tag_key, tag_value)
+        for resource in resources:
+            if resource['id'] not in added_resource_ids:
+                all_resources.append(resource)
+                added_resource_ids.add(resource['id'])
+
+        # Cerca i resource group con il tag specificato in questa sottoscrizione
+        resource_groups = get_resource_groups_by_tag_in_subscription(subscription_id, tag_key, tag_value)
+        for rg in resource_groups:
+            # Cerca risorse all'interno di ciascun resource group
+            rg_resources = get_resources_in_resource_group_in_subscription(subscription_id, rg.name)
+            for resource in rg_resources:
+                if resource['id'] not in added_resource_ids:
+                    all_resources.append(resource)
+                    added_resource_ids.add(resource['id'])
+
+    return all_resources
+
+# Funzione per ottenere le risorse all'interno di un Resource Group in una sottoscrizione
+def get_resources_in_resource_group_in_subscription(subscription_id, resource_group_name):
+    resource_client = ResourceManagementClient(credential, subscription_id)
+    print(f"Recuperando risorse dal resource group: {resource_group_name} nella sottoscrizione {subscription_id}")
     resources = resource_client.resources.list_by_resource_group(resource_group_name)
     resources_list = []
 
@@ -106,9 +129,8 @@ def get_resources_in_resource_group(resource_group_name):
 
     return resources_list
 
-
 # Funzione per ottenere l'API più recente per una risorsa specifica
-def get_latest_api_version(resource_type):
+def get_latest_api_version(resource_client, resource_type):
     provider_namespace, resource_type_name = resource_type.split('/', 1)
     provider = resource_client.providers.get(provider_namespace)
     resource_type_info = next(
@@ -118,10 +140,10 @@ def get_latest_api_version(resource_type):
         return sorted(resource_type_info.api_versions, reverse=True)[0]
     return None
 
-
 # Funzione per ottenere i metadati completi di una risorsa specifica
-def get_resource_metadata(resource):
-    api_version = get_latest_api_version(resource['type'])
+def get_resource_metadata(resource_client, resource):
+    resource_type = resource['type']
+    api_version = get_latest_api_version(resource_client, resource_type)
     if api_version:
         print(f"Usando l'API version: {api_version} per la risorsa {resource['name']}")
         resource_metadata = resource_client.resources.get_by_id(resource['id'], api_version=api_version)
@@ -129,7 +151,6 @@ def get_resource_metadata(resource):
     else:
         print(f"Impossibile trovare l'API per la risorsa {resource['name']} con tipo {resource['type']}")
         return None
-
 
 # Funzione per generare la overview del workload leggendo il file CSV
 def generate_workload_overview():
@@ -149,7 +170,7 @@ def generate_workload_overview():
             {"role": "system",
              "content": "You are an expert Azure Architect and Documentation Writer. Your job is to create a clear and detailed overview of an Azure workload."},
             {"role": "user",
-             "content": f"Here is the list of resources in the workload:\n{resources_str}.\nGenerate a detailed and human-readable overview."}
+             "content": f"Here is the list of resources in the workload:\n{resources_str}.\nGenerate a detailed and human-readable overview. Explain at the end how the workload is splitted, so if is multi-regional or not and so on."}
         ],
         "temperature": 0.7,
         "max_tokens": 16000
@@ -168,7 +189,6 @@ def generate_workload_overview():
     response_from_copilot = response.json()['choices'][0]['message']['content'].strip()
 
     return response_from_copilot
-
 
 # Funzione per generare la documentazione con OpenAI
 def generate_infra_config(metadata_list):
@@ -207,7 +227,6 @@ def generate_infra_config(metadata_list):
 
     return document_content
 
-
 # Funzione per convertire il file txt in docx e aggiungere l'overview
 def txt_to_docx():
     print("Generazione dei file in corso...")
@@ -236,7 +255,6 @@ def txt_to_docx():
     doc.save("Output.docx")
     print("Il file Output.docx è stato creato con successo.")
 
-
 # Funzione per eliminare il file architecture.txt al termine del run
 def cleanup_files():
     if os.path.exists("architecture.txt"):
@@ -244,7 +262,6 @@ def cleanup_files():
         print("File architecture.txt eliminato.")
     else:
         print("File architecture.txt non trovato, nessuna eliminazione necessaria.")
-
 
 # Funzione per salvare le risorse con i metadati dinamici in un file CSV
 def save_resources_with_expanded_metadata_to_csv(resources, metadata_list):
@@ -289,7 +306,6 @@ def save_resources_with_expanded_metadata_to_csv(resources, metadata_list):
 
     print("Il file resources_with_expanded_metadata.csv è stato creato con successo.")
 
-
 # Funzione principale per orchestrare tutte le operazioni
 def main():
     if os.path.exists("Output.docx") or os.path.exists("resources_with_expanded_metadata.csv"):
@@ -299,33 +315,26 @@ def main():
     tag_key = 'Workload'
     tag_value = 'Production'
 
-    all_resources = []
-    added_resource_ids = set()
+    # Raccogli tutte le risorse da tutte le sottoscrizioni e resource group
+    all_resources = get_all_resources(tag_key, tag_value)
 
-    resources = get_resources_by_tag(tag_key, tag_value)
-
-    for resource in resources:
-        if resource['id'] not in added_resource_ids:
-            all_resources.append(resource)
-            added_resource_ids.add(resource['id'])
-
-    resource_groups = get_resource_groups_by_tag(tag_key, tag_value)
-
-    for rg in resource_groups:
-        rg_resources = get_resources_in_resource_group(rg.name)
-
-        for resource in rg_resources:
-            if resource['id'] not in added_resource_ids:
-                all_resources.append(resource)
-                added_resource_ids.add(resource['id'])
-
-    # Ottieni i metadati di tutte le risorse
+    # Set per tenere traccia degli ID delle risorse già processate
+    processed_resource_ids = set()
     metadata_list = []
-    for resource in all_resources:
-        print(f"\nRecuperando i metadati per la risorsa: {resource['name']}")
-        metadata = get_resource_metadata(resource)
-        if metadata:
-            metadata_list.append(metadata)
+
+    # Crea un client ResourceManagementClient per ogni sottoscrizione
+    for subscription in subscription_client.subscriptions.list():
+        subscription_id = subscription.subscription_id
+        resource_client = ResourceManagementClient(credential, subscription_id)
+
+        # Ottieni i metadati di tutte le risorse, eliminando i duplicati
+        for resource in all_resources:
+            if resource['id'] not in processed_resource_ids:
+                print(f"\nRecuperando i metadati per la risorsa: {resource['name']}")
+                metadata = get_resource_metadata(resource_client, resource)
+                if metadata:
+                    metadata_list.append(metadata)
+                    processed_resource_ids.add(resource['id'])  # Aggiungi l'ID al set di risorse processate
 
     # Salva tutte le risorse (dirette e dai resource group) con i metadati in un file CSV
     save_resources_with_expanded_metadata_to_csv(all_resources, metadata_list)

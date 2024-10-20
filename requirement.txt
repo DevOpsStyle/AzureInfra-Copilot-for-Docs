@@ -1,4 +1,5 @@
 azure-identity==1.12.0
 azure-mgmt-resource==23.0.0
+azure-mgmt-subscription==3.1.1
 docx==0.2.4
 requests==2.31.0

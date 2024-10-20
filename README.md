@@ -68,8 +68,6 @@ To set up and run the project, follow these steps:
     API_KEY = "<replace with api key for OpenAI>"
     QUESTION_ENDPOINT = "<replace with OpenAI endpoint"
 
-    subscription_id = '<replace with the landing zone subid where the workload is placed>'
-
     ```
 
 ### Running the Script
