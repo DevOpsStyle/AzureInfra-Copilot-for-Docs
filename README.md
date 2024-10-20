@@ -1,4 +1,4 @@
-# Azure Resource Metadata Analyzer
+# Azure Resource Metadata Analyzer V0.2
 
 ## Overview
 
@@ -126,4 +126,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 *Azure Resource Metadata Analyzer is a continuous improvement project (Artifact) built to automate Azure resource documentation and reporting. The heart of the project are the community. We invite contributions and encourage innovation through new feature suggestions and performance optimizations.*
 
+## Version Hystory
 
+- V0.2: Add multi-sub assessment
