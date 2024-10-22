@@ -220,9 +220,17 @@ def generate_infra_config(metadata_list):
         response.raise_for_status()
         response_from_copilot = response.json()['choices'][0]['message']['content'].strip()
 
-        document_content += response_from_copilot + "\n\n"
+        # Passa il contenuto attraverso 3 cicli di revisione con ArchitecturalReviewer e DocCreator
+        response_from_DocCreator = response_from_copilot
+        previousdoc = response_from_DocCreator
+        for i in range(3):
+            ArchitecturalReviewer_response = ArchitecturalReviewer(response_from_DocCreator)
+            response_from_DocCreator, previousdoc = DocCreator(ArchitecturalReviewer_response, previousdoc)
 
-    with open("architecture.txt", "a") as architecturefile:
+        # Aggiunge la documentazione revisionata al contenuto finale
+        document_content += response_from_DocCreator + "\n\n"
+
+    with open("architecture.txt", "a", encoding="utf-8") as architecturefile:
         architecturefile.write(document_content)
 
     return document_content
@@ -305,6 +313,60 @@ def save_resources_with_expanded_metadata_to_csv(resources, metadata_list):
             writer.writerow(resource_row)
 
     print("Il file resources_with_expanded_metadata.csv è stato creato con successo.")
+
+def ArchitecturalReviewer(response_from_DocCreator):
+    payload = {
+        "messages": [
+            {"role": "system",
+             "content": "You are the Azure architectural reviewer of the enterprise. Our team is creating documentation on our Azure architecture for the existing dedicated workload. The team will pass a specific piece of documentation to you each time. Make suggestions on how to make it more user-friendly the part without suggesting to add graph, diagrams, table of contents and so on. Suggest how to write the doc in a user-friendly readable way."},
+            {"role": "user",
+             "content": f"{response_from_DocCreator}"}
+        ],
+        "temperature": 0.7,
+        "max_tokens": 16000
+    }
+
+    response = requests.post(
+        QUESTION_ENDPOINT,
+        headers={
+            "Content-Type": "application/json",
+            "api-key": API_KEY
+        },
+        json=payload
+    )
+
+    response.raise_for_status()
+    ArchitecturalReviewer_response = response.json()['choices'][0]['message']['content'].strip()
+    print(f"Architectural Reviewer Comments: {ArchitecturalReviewer_response}")
+
+    return ArchitecturalReviewer_response
+
+def DocCreator(ArchitecturalReviewer_response,previousdoc):
+    payload = {
+        "messages": [
+            {"role": "system",
+             "content": "You have created a document about your Azure infrastructure related a workload. Your supervisor is reviewing the documentation. Generate a new documentation output based on his suggestions as an output."},
+            {"role": "user",
+             "content": f"source:{previousdoc}. Suggestion: {ArchitecturalReviewer_response}"}
+        ],
+        "temperature": 0.7,
+        "max_tokens": 16000
+    }
+
+    response = requests.post(
+        QUESTION_ENDPOINT,
+        headers={
+            "Content-Type": "application/json",
+            "api-key": API_KEY
+        },
+        json=payload
+    )
+
+    response.raise_for_status()
+    response_from_DocCreator = response.json()['choices'][0]['message']['content'].strip()
+    print(f"Doc Creator Repsonse: {response_from_DocCreator}")
+
+    return response_from_DocCreator, response_from_DocCreator
 
 # Funzione principale per orchestrare tutte le operazioni
 def main():

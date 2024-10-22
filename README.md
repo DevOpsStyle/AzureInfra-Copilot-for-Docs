@@ -1,4 +1,4 @@
-# Azure Resource Metadata Analyzer V0.2
+# Azure Resource Metadata Analyzer V0.3
 
 ## Overview
 
@@ -129,3 +129,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Version Hystory
 
 - V0.2: Add multi-sub assessment
+- V0.3: Add multi-agent approach. The documentation created by the Azure OpenAI DocCreator will be reviewed by a Reviewer Agent always based on Azure OpenAI
