@@ -8,13 +8,13 @@ from azure.mgmt.resource import ResourceManagementClient
 from azure.mgmt.subscription import SubscriptionClient
 
 # Informazioni del Service Principal
-tenant_id = '<replace with tenant id>'
-client_id = '<replace with app client id>'
-client_secret = '<replace with secret>'
+tenant_id = 'b28c183f-5e96-43fd-bd83-5b0eb228e510'
+client_id = 'da9884b1-f5aa-4552-a395-4b89549911db'
+client_secret = 'v9i8Q~eO6EdYIZl3alhBX_lRTm5oPHZByqDYVch~'
 
 # Configurazione degli endpoint e delle chiavi API di OpenAI
-API_KEY = "<replace with api key for OpenAI>"
-QUESTION_ENDPOINT = "<replace with OpenAI endpoint>"
+API_KEY = "1239e9ff7aef4a9281519a4920bcfda3"
+QUESTION_ENDPOINT = "https://openaicsatest.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2024-08-01-preview"
 
 # Autenticazione tramite il Service Principal
 credential = ClientSecretCredential(
@@ -318,7 +318,7 @@ def ArchitecturalReviewer(response_from_DocCreator):
     payload = {
         "messages": [
             {"role": "system",
-             "content": "You are the Azure architectural reviewer of the enterprise. Our team is creating documentation on our Azure architecture for the existing dedicated workload. The team will pass a specific piece of documentation to you each time. Make suggestions on how to make it more user-friendly the part without suggesting to add graph, diagrams, table of contents and so on. Suggest how to write the doc in a user-friendly readable way."},
+             "content": "You are the Azure architectural reviewer of the enterprise. Our team is creating documentation on our Azure architecture for the existing dedicated workload. The team will pass a specific piece of documentation to you each time. Make suggestions on how to make it more user-friendly the part without suggesting to add graph, diagrams, table of contents, feedback and so on. Suggest how to write the doc in a user-friendly readable way."},
             {"role": "user",
              "content": f"{response_from_DocCreator}"}
         ],
